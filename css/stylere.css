@@ -1,0 +1,101 @@
+/* Reset base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+ * {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>') 0 0, auto !important;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    font-family: sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f5f5f5;
+}
+
+/* Container principale a 3 colonne */
+.container {
+    display: grid;
+    grid-template-columns: 10% 70% 20%;
+    height: 100vh;
+    width: 100vw;
+    gap: 10px;
+    padding: 10px;
+}
+
+/* Colonna 1: 3 righe centrate */
+.col-1 {
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    align-items: center;
+}
+
+/* Colonna 2: 2 righe */
+.col-2 {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+}
+
+.content-b {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+/* Colonna 3: 20 righe */
+.col-3 {
+    display: grid;
+    grid-template-rows: repeat(20, 1fr);
+    overflow-y: auto; /* scroll se serve */
+}
+
+/* Box con bordo arrotondato */
+/* Effetto hover per i box */
+.box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+    padding: 10px;
+     transition: background-color 0.3s ease, border 0.3s ease, transform 0.2s ease; 
+    border: 2px solid transparent; /* bordo invisibile di base */
+}
+
+ /* .box:hover {
+    border: 2px solid rgba(0, 0, 0, 0.3); 
+   filter: brightness(95%);
+    transform: scale(1.03); 
+    outline: 3px solid #333;
+    outline-offset: -3px;
+}  */
+.focused {
+    border: 2px solid rgba(0, 0, 0, 0.3); /* bordo grigio semi-trasparente */
+    filter: brightness(95%); /* scurisce leggermente il colore */
+    transform: scale(1.03); /* leggera espansione */
+    outline: 3px solid #333;
+    outline-offset: -3px;
+}
+
+
+/* Colori pastello */
+.pastel1 { background-color: #ffd1dc; }
+.pastel2 { background-color: #c1f0f6; }
+.pastel3 { background-color: #d5f4e6; }
+.pastel4 { background-color: #fef3bd; }
+.pastel5 { background-color: #e2c2f9; }
+.pastel6 { background-color: #ffdfba; }
+.pastel7 { background-color: #bae1ff; }
+.pastel8 { background-color: #baffc9; }
+.pastel9 { background-color: #ffffba; }
+.pastel10 { background-color: #ffb3ba; }

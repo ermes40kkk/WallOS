@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="cache-control" content="max-age=0" />
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="expires" content="0" />
+<meta http-equiv="expires" content="Tue, 01 Jan 1990 12:00:00 GMT" />
+<title>SilkBoard Test Layout</title>
+<link rel="stylesheet" href="css/style0.3.10.css">
+ <script src="js/app.js"></script>
+</head>
+
+<body>
+<!-- Offcanvas e overlay -->
+<div id="offcanvas-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:9999;"></div>
+<div class="container">
+
+    <!-- Colonna 1 -->
+        <div class="col col-1">
+        <div class="box-wrapper" style="position:relative;">
+            <div class="box pastel1" data-nav="menu1" id="menu1-btn">Menu 1
+                <div id="offcanvas" class="pastel1" style="display:none;position:absolute;top:0;left:100%;height:100vh;min-height:100vh;width:340px;box-shadow:2px 0 16px #000;z-index:10000;transition:transform 0.3s;overflow:hidden;border-radius:0 12px 12px 0;">
+                                <div style="padding:24px 16px 8px 16px;font-size:1.3em;font-weight:bold;">Adizero Boston 13 Schuh</div>
+                                <button id="close-offcanvas" style="position:absolute;top:8px;right:8px;font-size:1.2em;background:none;border:none;color:#333;cursor:pointer;">&times;</button>
+                                <div id="carousel-adizero" style="width:100%;max-width:260px;margin:0 auto 12px auto;position:relative;">
+                                    <img id="carousel-img" src="assets/img/Adizero.avif" alt="Adizero Boston 13" style="width:100%;border-radius:10px;box-shadow:0 2px 8px #0002;object-fit:cover;max-height:220px;">
+                                    <button id="carousel-prev" style="position:absolute;top:50%;left:0;transform:translateY(-50%);background:#fff8;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2em;cursor:pointer;">&#8592;</button>
+                                    <button id="carousel-next" style="position:absolute;top:50%;right:0;transform:translateY(-50%);background:#fff8;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2em;cursor:pointer;">&#8594;</button>
+                                    <div style="text-align:center;font-size:0.9em;color:#555;margin-top:4px;">Scorri per vedere tutte le immagini</div>
+                                </div>
+                                <div style="padding:0 16px 12px 16px;font-size:1em;line-height:1.4;">
+                                    Leichter Laufschuh für Tempotraining und Laufvorbereitung.
+                                </div>
+                                <div style="padding:0 16px 24px 16px;text-align:center;">
+                                    <button id="buy-now-btn" style="background:#222;color:#fff;padding:12px 32px;border-radius:8px;font-size:1.1em;font-weight:bold;letter-spacing:1px;border:none;box-shadow:0 2px 8px #0002;cursor:pointer;">BUY NOW</button>
+                                </div>
+                                <div id="qrcode-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:20000;align-items:center;justify-content:center;">
+                                    <div style="background:#fff;padding:24px 24px 16px 24px;border-radius:16px;box-shadow:0 4px 24px #0005;max-width:90vw;max-height:90vh;display:block;flex-direction:column;align-items:center;">
+                                        <img src="assets/qr/qrcode_www.adidas.de.png" alt="QR Code Adidas" style="width:180px;height:180px;object-fit:contain;">
+                                        <button id="close-qrcode" style="margin-top:16px;background:#222;color:#fff;padding:8px 24px;border-radius:8px;font-size:1em;border:none;cursor:pointer;">CLOSE</button>
+                                    </div>
+                                </div>
+                </div>
+            </div>
+        </div>
+        <div class="box-wrapper"><div class="box pastel2" data-nav="menu2">Menu 2</div></div>
+        <div class="box-wrapper"><div class="box pastel3" data-nav="menu3">Menu 3</div></div>
+    </div>
+
+    <!-- Colonna 2 -->
+    <div class="col col-2">
+        <div class="row-a">
+            <div class="box-wrapper">
+                <div class="box pastel4" data-nav="content-a" style="padding:0;overflow:hidden;">
+                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/J-w5QvwRkI8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>
+                </div>
+            </div>
+        </div>
+        <div class="row-b">
+            <div class="box-wrapper">
+                <div class="box pastel5" data-nav="content-b1" style="padding:0;overflow:hidden;">
+                    <iframe src="https://www.tiktok.com/embed/v2/7538721344817532182" width="100%" height="100%" frameborder="0" allowfullscreen style="border:none;overflow:hidden;"></iframe>
+                </div>
+            </div>
+            <div class="box-wrapper"><div class="box pastel6" data-nav="content-b2">Content B2</div></div>
+            <div class="box-wrapper"><div class="box pastel7" data-nav="content-b3">Content B3</div></div>
+        </div>
+    </div>
+    <!-- Colonna 3 -->
+    <div class="col col-3">
+        <div class="box-wrapper"><div class="box pastel6" data-nav="col3-1">1</div></div>
+        <div class="box-wrapper"><div class="box pastel7" data-nav="col3-2">2</div></div>
+        <div class="box-wrapper"><div class="box pastel8" data-nav="col3-3">3</div></div>
+        <div class="box-wrapper"><div class="box pastel9" data-nav="col3-4">4</div></div>
+        <div class="box-wrapper"><div class="box pastel10" data-nav="col3-5">5</div></div>
+        <div class="box-wrapper"><div class="box pastel1" data-nav="col3-6">6</div></div>
+        <div class="box-wrapper"><div class="box pastel2" data-nav="col3-7">7</div></div>
+        <div class="box-wrapper"><div class="box pastel3" data-nav="col3-8">8</div></div>
+        <div class="box-wrapper"><div class="box pastel4" data-nav="col3-9">9</div></div>
+        <div class="box-wrapper"><div class="box pastel5" data-nav="col3-10">10</div></div>
+        <div class="box-wrapper"><div class="box pastel6" data-nav="col3-11">11</div></div>
+        <div class="box-wrapper"><div class="box pastel7" data-nav="col3-12">12</div></div>
+        <div class="box-wrapper"><div class="box pastel8" data-nav="col3-13">13</div></div>
+        <div class="box-wrapper"><div class="box pastel9" data-nav="col3-14">14</div></div>
+        <div class="box-wrapper"><div class="box pastel10" data-nav="col3-15">15</div></div>
+    </div>
+</div>
+</body>
