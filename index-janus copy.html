@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Janus VideoRoom Chat</title>
+  <style>
+      body { background: #111; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
+    video { width: 45%; margin: 10px; border: 2px solid #333; }
+    #chat { width: 90%; height: 150px; background: #222; overflow-y: auto; margin: 10px; padding: 10px; border-radius: 5px; }
+    input { width: 90%; padding: 10px; border: none; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Janus VideoRoom Demo</h2>
+  <video id="localVideo" autoplay muted playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+   <div id="chat"></div>
+  <input id="messageInput" placeholder="Scrivi un messaggio" />
+  <script src="https://cdn.jsdelivr.net/gh/meetecho/janus-gateway/html/janus.js"></script>
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script>
+    let janus = null;
+    let sfutest = null;
+    let opaqueId = "videoroomtest-" + Janus.randomString(12);
+    let myroom = 1234; // Stanza fissa
+    let myusername = "utente" + Janus.randomString(4);
+    let myid = null;
+    let mystream = null;
+    
+Janus.init({
+      debug: "all",
+      callback: function () {
+        janus = new Janus({
+          server: "wss://camera.mossino.eu/janus",
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }
+             ,{
+    urls: "turn:your-turn-server.com:3478",
+    username: "utente",
+    credential: "password"
+  }
+	  ],
+          success: function () {
+            janus.attach({
+              plugin: "janus.plugin.videoroom",
+              opaqueId: opaqueId,
+              success: function (pluginHandle) {
+		 // ✅ Aggiunta debug ICE
+  const pc = pluginHandle.webrtcStuff.pc;
+  if (pc) {
+    pc.onicecandidate = (event) => {
+      if (event.candidate)
+        console.log("❄️ ICE candidate:", event.candidate);
+      else
+        console.log("✅ Fine candidati ICE");
+    };
+  } else {
+    console.warn("⚠️ PeerConnection non disponibile ancora.");
+  }      
+                sfutest = pluginHandle;
+                console.log("Plugin attached! (" + sfutest.getPlugin() + ", id=" + sfutest.getId() + ")");
+
+                // Crea stanza solo la prima volta (altrimenti puoi commentare questo)
+                const create = {
+                  request: "create",
+                  room: myroom,
+                  publishers: 6
+                };
+                sfutest.send({ message: create });
+navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+  .then(stream => {
+    document.getElementById('localVideo').srcObject = stream;
+    console.log("Stream locale pronto manuale.");
+  })
+  .catch(err => {
+    console.error("Errore accesso webcam manuale:", err);
+  });
+
+                // Unisciti alla stanza
+                const register = {
+                  request: "join",
+                  room: myroom,
+                  ptype: "publisher",
+                  display: myusername
+                };
+                sfutest.send({ message: register });
+              },
+              error: function (error) {
+                console.error("Errore attach:", error);
+              },
+              consentDialog: function (on) {
+                console.log("Consent dialog should be " + (on ? "on" : "off") + " now");
+              },
+              mediaState: function (medium, on) {
+                console.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
+              },
+              webrtcState: function (on) {
+                console.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
+              },
+              onmessage: function (msg, jsep) {
+                Janus.debug("Got a message", msg);
+                if (msg["videoroom"] === "joined") {
+                  myid = msg["id"];
+                  console.log("Successfully joined room " + msg["room"] + " with ID " + myid);
+                  publishOwnFeed(true);
+                } else if (msg["videoroom"] === "event") {
+                  if (msg["publishers"]) {
+                    const list = msg["publishers"];
+                    for (let f in list) {
+                      const id = list[f]["id"];
+                      const display = list[f]["display"];
+                      newRemoteFeed(id, display);
+                    }
+                  }
+                }
+
+                if (jsep) {
+                  sfutest.handleRemoteJsep({ jsep: jsep });
+                }
+              },
+              onlocalstream: function (stream) {
+                Janus.attachMediaStream(document.getElementById('localVideo'), stream);
+                mystream = stream;
+		      console.log("Stream locale ottenuto:", stream);
+              },
+              onremotestream: function (stream) {
+                Janus.attachMediaStream(document.getElementById('remoteVideo'), stream);
+              },
+              oncleanup: function () {
+                console.log("Cleanup done");
+              }
+            });
+          },
+          error: function (error) {
+            console.error(error);
+          },
+          destroyed: function () {
+            console.log("Janus distrutto");
+          }
+        });
+      }
+    });
+
+    function publishOwnFeed(useAudio) {
+      sfutest.createOffer({
+        media: { audioRecv: false, videoRecv: false, audioSend: useAudio, videoSend: true },
+        success: function (jsep) {
+          const publish = { request: "publish", audio: useAudio, video: true };
+          sfutest.send({ message: publish, jsep: jsep });
+        },
+        error: function (error) {
+          console.error("WebRTC error:", error);
+        }
+      });
+    }
+
+    function newRemoteFeed(id, display) {
+      let remoteFeed = null;
+      janus.attach({
+        plugin: "janus.plugin.videoroom",
+        opaqueId: opaqueId,
+        success: function (pluginHandle) {
+          remoteFeed = pluginHandle;
+          const listen = {
+            request: "join",
+            room: myroom,
+            ptype: "subscriber",
+            feed: id
+          };
+          remoteFeed.send({ message: listen });
+        },
+        onmessage: function (msg, jsep) {
+          if (jsep) {
+            remoteFeed.createAnswer({
+              jsep: jsep,
+              media: { audioSend: false, videoSend: false },
+              success: function (jsep) {
+                const body = { request: "start", room: myroom };
+                remoteFeed.send({ message: body, jsep: jsep });
+              },
+              error: function (error) {
+                console.error("WebRTC error:", error);
+              }
+            });
+          }
+        },
+        onremotestream: function (stream) {
+          Janus.attachMediaStream(document.getElementById('remoteVideo'), stream);
+        },
+        oncleanup: function () {
+          console.log("Remote feed cleanup");
+        }
+      });
+      // Chat demo locale
+      const chat = document.getElementById("chat");
+      const input = document.getElementById("messageInput");
+      input.addEventListener("keypress", e => {
+        if (e.key === "Enter") {
+          const msg = input.value.trim();
+          if (msg !== "") {
+            chat.innerHTML += `<div><strong>Tu:</strong> ${msg}</div>`;
+            input.value = "";
+            chat.scrollTop = chat.scrollHeight;
+          }
+        }
+      });	      
+      	    
+    }
+  </script>
+</body>
+</html>
+

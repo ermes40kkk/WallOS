@@ -1,4 +1,25 @@
+
+
+
+import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@latest/esm/index.min.js";
+
 document.addEventListener("DOMContentLoaded", () => {
+    // Inizializza il lettore di codici a barre
+      const codeReader = new BrowserMultiFormatReader();
+      const video = document.getElementById('preview');
+      const resultLabel = document.getElementById('result');
+
+
+      // Avvia lo scanner
+      codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+        if (result) {
+          resultLabel.textContent = "Codice rilevato: " + result.getText();
+        }
+        if (err && !(err.name === 'NotFoundException')) {
+          console.error(err);
+        }
+      });
+
     // Offcanvas laterale figlio di menu1
     const menu1Btn = document.getElementById('menu1-btn');
     const offcanvas = document.getElementById('offcanvas');

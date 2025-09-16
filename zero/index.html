@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Janus VideoRoom Chat</title>
+  <style>
+      body { background: #111; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
+    video { width: 45%; margin: 10px; border: 2px solid #333; }
+    #chat { width: 90%; height: 150px; background: #222; overflow-y: auto; margin: 10px; padding: 10px; border-radius: 5px; }
+    input { width: 90%; padding: 10px; border: none; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Janus VideoRoom Demo</h2>
+  <video id="localVideo" autoplay muted playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+   <div id="chat"></div>
+  <input id="messageInput" placeholder="Scrivi un messaggio" />
+
+
+  <script>
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }, // environment = camera posteriore
+          audio: false
+        });
+        document.getElementById("localVideo").srcObject = stream;
+      } catch (err) {
+        console.error("Errore nell'aprire la camera:", err);
+        alert("Impossibile accedere alla fotocamera. Controlla i permessi del browser.");
+      }
+    }
+    startCamera();
+  </script>
+
+
+</body>
+</html>
