@@ -2,15 +2,23 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
   <title>Scanner</title>
   <style>
+
+   
+
     body { font-family:sans-serif; background:#111; color:white;
            display:flex; flex-direction:column; align-items:center; }
-    video { width:80%; max-width:800px; border:2px solid #333; margin:10px 0; }
+    video { width:80%; max-width:600px; border:2px solid #333; margin:10px 0; }
+    
     button {
       font-size: 2.3em !important;
        z-index: 8000;
     }
+
+
     ul#results {
       width: 340px;
       max-height: 60vh;
@@ -57,10 +65,116 @@
     #ocr-controls div {
       margin-bottom: 10px;
     }
+    #datatable-container {
+  height: 220px;        /* più corta */
+  width: 96vw;
+  max-width: 1600px;
+  margin: 0 auto 18px auto;
+  background: #222;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 2px 12px #000a;
+  color: #ffe600;
+  overflow-x: auto;
+  overflow-y: auto;
+  display: block;
+}
+#datatable-ordini {
+  table-layout: fixed;
+  width: 100% !important;
+  min-width: 0 !important; /* override di eventuale min-width:1200px */
+}
+
+
+#datatable-ordini th {
+  font-size: 2.4em !important; /* aumenta la dimensione degli header */
+  font-weight: bold;
+  padding: 10px 8px !important;
+}
+
+/* Aumenta la dimensione della scritta "Search" */
+div.dt-search label,
+div.dt-search input[type="search"] {
+  font-size: 2.4em !important;
+}
+
+ #datatable-ordini td {
+  font-size: 1.9em !important;
+  padding: 3px 4px !important;
+  /* white-space: normal;     consenti a capo */
+  /* word-break: break-word;  spezza se necessario */
+}
+
+/* Forza LagerPlatz (2a colonna) a 100px */
+#datatable-ordini th:nth-child(2),
+#datatable-ordini td:nth-child(2) {
+  width: 3px !important;
+  max-width: 3px !important;
+  /* word-break: break-all;   già presente, utile per numeri/codici lunghi */
+}
+
+
+/* Larghezze per colonna (somma ≈ 100%) */
+#datatable-ordini th:nth-child(1), #datatable-ordini td:nth-child(1) { width: 10%; } /* OrderNr */
+#datatable-ordini th:nth-child(2), #datatable-ordini td:nth-child(2) { width: 16%; } /* LagerPlatz */
+#datatable-ordini th:nth-child(3), #datatable-ordini td:nth-child(3) { width: 7%; }  /* Col */
+#datatable-ordini th:nth-child(4), #datatable-ordini td:nth-child(4) { width: 7%; }  /* Row */
+#datatable-ordini th:nth-child(5), #datatable-ordini td:nth-child(5) { width: 7%; }  /* Shelf */
+#datatable-ordini th:nth-child(6), #datatable-ordini td:nth-child(6) { width: 3%; }  /* NumPal */
+#datatable-ordini th:nth-child(7), #datatable-ordini td:nth-child(7) { width: 10%; } /* Datum */
+#datatable-ordini th:nth-child(8), #datatable-ordini td:nth-child(8) { width: 26%; } /* LHM */
+#datatable-ordini th:nth-child(9), #datatable-ordini td:nth-child(9) { width: 10%; } /* Gewicht */
+
+ /* #magazzino-view {
+    left: 10px !important;
+    top: 59px !important;
+} */
+
+/* Aggiunto per il layout responsive */
+@media (max-width: 900px) and (orientation: landscape) {
+  #datatable-container {
+    width: 96vw;
+    max-width: 96vw;
+    padding: 6px;
+    font-size: 0.8em;
+    height: 50vh;
+  }
+
+ #magazzino-view {
+    left: 2vw !important;
+    top: 320px !important;
+    /* top: 60vh !important; */
+     max-width: 96vw;
+    padding: 8px 4px;
+    font-size: 0.8em;
+  } 
+  #magazzino-matrix {
+    max-width: 100vw;
+    max-height: 100vw;
+    gap: 20px;
+    
+  }
+  #nummer-label {
+    left: 23px !important;
+    top: 1150px !important;
+    font-size: 2.3em !important;
+    padding: 6px 10px !important;
+    font-size: 3.3em !important;
+  }
+  div.dt-container {
+    margin: 0 auto;
+    width: 80%;
+  }
+
+}
   </style>
+  <!-- Inserisci nel <head> -->
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+
 </head>
 <body>
-  <pre style="font-family:monospace; font-size:1.1em; color:#09ff00; margin-bottom:18px;">
+  <!-- Rendi invisibile il titolo scanner -->
+<pre id="scanner-title" style="display:none;">
  $$$$$$\                                                             
 $$  __$$\                                                            
 $$ /  \__| $$$$$$$\ $$$$$$\  $$$$$$$\  $$$$$$$\   $$$$$$\   $$$$$$\  
@@ -69,99 +183,200 @@ $$ /  \__| $$$$$$$\ $$$$$$\  $$$$$$$\  $$$$$$$\   $$$$$$\   $$$$$$\
 $$\   $$ |$$ |     $$  __$$ |$$ |  $$ |$$ |  $$ |$$   ____|$$ |      
 \$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |$$ |  $$ |\$$$$$$$\ $$ |      
  \______/  \_______|\_______|\__|  \__|\__|  \__| \_______|\__|    
-                                            Ermes40kkk 2024   
+                                            Ermes40kkk 2025   
 </pre>
-  <!-- Sposta i pulsanti OCR sopra OCR FRAME -->
-<button id="nummer-ocr-btn" style="
-  position:fixed; right:40px; top:32%; transform:translateY(-50%);
-  background:#ff9800; color:#fff; border:none; border-radius:8px; padding:12px 18px;
-  font-size:2.3em; cursor:pointer; z-index:7002;">
-  Nummer OCR
-</button>
-<button id="tabelle-ocr-btn" style="
-  position:fixed; right:40px; top:36%; transform:translateY(-50%);
-  background:#ffe600; color:#222; border:none; border-radius:8px; padding:12px 18px;
-  font-size:1.3em; cursor:pointer; z-index:7002;">
-  Tabelle OCR
-</button>
 
-  <button id="ocr-frame-btn" style="position:fixed; right:40px; top:40%; transform:translateY(-50%);
-    background:#227; color:#fff; border:none; border-radius:8px; padding:12px 18px;
-    font-size:2.3em; cursor:pointer; z-index:7001;">
-    OCR Frame
+ <!-- Sostituisci i 4 bottoni in alto con questa versione in basso -->
+<div id="main-buttons" style="
+  position:fixed;
+  left:0;
+  bottom:24px;
+  width:100vw;
+  display:flex;
+  justify-content:center;
+  gap:32px;
+  z-index:9900;
+">
+  <button id="settings-btn" style="
+    width:100px;
+    height:100px;
+    background:#ffe600;
+    border-radius:18px;
+    border:none;
+    box-shadow:0 2px 12px #0002;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:2.5em;
+  ">
+    <img src="./bento-menu-svgrepo-com.svg" alt="Settings" style="width:48px;height:48px;">
   </button>
-  <button id="send-frame-btn" style="position:fixed; right:40px; top:50%; transform:translateY(-50%);
-    background:#2a2; color:#fff; border:none; border-radius:8px; padding:12px 18px;
-    font-size:2.3em; cursor:pointer; z-index:7000;">
-    Invia Frame
+  <button id="toggle-camera-btn" style="
+    width:100px;
+    height:100px;
+    background:#ffe600;
+    border-radius:18px;
+    border:none;
+    box-shadow:0 2px 12px #0002;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:2.5em;
+  "><span style="font-size:2em;">C</span>
   </button>
-  <label style="position:fixed; right:40px; top:60%; transform:translateY(-50%); z-index:1002; color:#fff;">
-    <input type="checkbox" id="ocr-loop-switch" style="margin-right:8px;">
-    OCR LOOP
-  </label>
-  <label id="debug-toggle">
-    <input type="checkbox" id="debug-checkbox" checked style="margin-right:8px;">
-    DEBUG
-  </label>
-  <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" hidden></canvas>
-  <ul id="results"></ul>
-
-
-  <!-- Modifica posizione label Nummer: 30px sotto il video, a sinistra -->
-  <div id="nummer-label" style="
-    position:fixed; left:20px; top:1330px; background:#222; color:#fff;
-    border-radius:8px; padding:10px 18px; font-size:2.3em; z-index:9001;">
-    Nummer: <span id="nummer-val"></span> <span id="nummer-found"></span>
+  <button id="toggle-magazzino-btn" style="
+    width:100px;
+    height:100px;
+    background:#ffe600;
+    border-radius:18px;
+    border:none;
+    box-shadow:0 2px 12px #0002;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:2.5em;
+  ">
+    <span style="font-size:2em;">M</span>
+  </button>
+  <button id="toggle-datatable-btn" style="
+    width:100px;
+    height:100px;
+    background:#ffe600;
+    border-radius:18px;
+    border:none;
+    box-shadow:0 2px 12px #0002;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:2.5em;
+  ">
+    <span style="font-size:2em;">T</span>
+  </button>
+   
+  <button id="toggle-split-btn" style="
+    width:100px;
+    height:100px;
+    background:#ffe600;
+    border-radius:18px;
+    border:none;
+    box-shadow:0 2px 12px #0002;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:2.5em;
+  ">
+    <span style="font-size:2em;">X</span>
+  </button>
+</div>
+    <!-- Inserisci subito dopo i bottoni in alto, fuori dai contenitori delle viste -->
+  <ul id="results" class="hide"></ul>
+  <!-- Contenitori intercambiabili -->
+  <div id="datatable-container" style="width: 96vw; height:82vh; display:block;"></div>
+  <div id="video-container" style="width:100vw; height:100vh; display:none; align-items:center; justify-content:center;">
+    <video id="video" autoplay playsinline style="width:80vw; max-width:600px; border:2px solid #333; margin:10px 0;"></video>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <!-- OCR buttons, initially hidden -->
+    <div id="ocr-controls" style="display:none;">
+      <button id="nummer-ocr-btn" style="background:#ff9800; color:#fff; border:none; border-radius:8px; padding:12px 18px; font-size:2.3em; cursor:pointer; z-index:7002;">Nummer OCR</button>
+      <button id="tabelle-ocr-btn" style="background:#ffe600; color:#222; border:none; border-radius:8px; padding:12px 18px; font-size:1.3em; cursor:pointer; z-index:7002;">Tabelle OCR</button>
+      <button id="ocr-frame-btn" style="background:#227; color:#fff; border:none; border-radius:8px; padding:12px 18px; font-size:2.3em; cursor:pointer; z-index:7001;">Frame OCR</button>
+      <button id="send-frame-btn" style="background:#2a2; color:#fff; border:none; border-radius:8px; padding:12px 18px; font-size:2.3em; cursor:pointer; z-index:7000;">KFZ</button>
+    </div>
   </div>
-
-  <!-- Pulsante SETTING in alto a destra -->
-<button id="settings-btn" style="
-  position:fixed; right:20px; top:7%; z-index:2200; font-size:2.1em;
-  background: #444; color: #fff; border-radius: 6px; padding: 6px 18px; cursor: pointer;">
-  SETTING
-</button>
-
-<!-- Finestra di settings nascosta di default -->
-<div id="settings-modal" style="
-  display:none; position:fixed; right:40px; top:12%; z-index:2300; background:#222;
-  color:#fff; border-radius:12px; padding:22px 28px; box-shadow:0 2px 16px #000a; min-width:320px;">
-  <label style="font-size:1.1em;">
-    <input type="checkbox" id="debug-checkbox-modal" checked style="margin-right:8px;">
-    DEBUG
-  </label>
-  <hr style="margin:12px 0;">
-  <div style="margin-bottom:10px;">
-    <strong>Nummer Parametri</strong><br>
-    Riga <button id="rigaNummer-minus">-</button>
-    <span id="rigaNummer-val">1</span>
-    <button id="rigaNummer-plus">+</button>
-    &nbsp; Col <button id="collNummer-minus">-</button>
-    <span id="collNummer-val">1</span>
-    <button id="collNummer-plus">+</button>
+  <div id="magazzino-view" style="position: fixed; width:100vw; height:100vh; display:none; background:#181818; padding:18px 12px; border-radius:12px; z-index:9000;">
+    <div id="magazzino-matrix" style="display:flex; flex-direction:row; gap:15px; max-width:100vw; max-height:100vw; overflow-x:auto; overflow-y:auto; "></div>
   </div>
-  <div>
-    <strong>Tabelle Parametri</strong><br>
-    Riga <button id="rigaTabelle-minus">-</button>
-    <span id="rigaTabelle-val">2</span>
-    <button id="rigaTabelle-plus">+</button>
-    &nbsp; Col1 <button id="coll1Tabella-minus">-</button>
-    <span id="coll1Tabella-val">1</span>
-    <button id="coll1Tabella-plus">+</button>
-    &nbsp; Col2 <button id="coll2Tabella-minus">-</button>
-    <span id="coll2Tabella-val">2</span>
-    <button id="coll2Tabella-plus">+</button>
-    &nbsp; Max <button id="maxTabelle-minus">-</button>
-    <span id="maxTabelle-val">5</span>
-    <button id="maxTabelle-plus">+</button>
-  </div>
- </div>
+<!-- Inserisci subito sotto il bottone settings, fuori dai contenitori delle viste -->
+<div id="nummer-label" style="
+  visibility:  hidden;
+  left:23px;
+  top:1150px;
+  position:fixed;
+  z-index:9001;
+  background:#222;
+  color:#ffe600;
+  font-size:3.3em;
+  padding:8px 16px;
+  border-radius:8px;
+  box-shadow:0 2px 8px #000a;
+">
+  <span id="nummer-val"></span>
+  <span id="nummer-found"></span>
+  <span id="location-label"></span>
+</div>
 
+
+  <div id="settings-modal" style="display:none; position:fixed; right:40px; top:12%; z-index:9300; background:#222; color:#fff; border-radius:12px; padding:22px 28px; box-shadow:0 2px 16px #000a; min-width:320px;">
+
+      <button id="debug-checkbox" aria-pressed="false" style="margin-right:8px; background:#333;">
+      DEBUG
+      </button>
+  
+
+    <div style="margin-top:12px;">
+      <button id="laden-btn" style="background:#227; color:#fff; border-radius:6px; padding:6px 18px; cursor:pointer; font-size:1.1em;">
+        LADEN
+      </button>
+
+    
+      
+    </div>
+    <hr style="margin:12px 0;">
+    <div style="margin-bottom:10px;">
+      <strong>Nummer Parametri</strong><br>
+      Riga <button id="rigaNummer-minus">-</button>
+      <span id="rigaNummer-val">1</span>
+      <button id="rigaNummer-plus">+</button>
+      &nbsp; Col <button id="collNummer-minus">-</button>
+      <span id="collNummer-val">1</span>
+      <button id="collNummer-plus">+</button>
+    </div>
+    <div>
+      <strong>Tabelle Parametri</strong>      
+      <label style="font-size:1.1em; margin-left:12px;">
+           <input type="checkbox" id="daten-hinzufuegen" style="margin-right:8px;" checked>
+             Daten hinzufügen
+      </label><br>
+      Riga <button id="rigaTabelle-minus">-</button>
+      <span id="rigaTabelle-val">2</span>
+      <button id="rigaTabelle-plus">+</button>
+      &nbsp; Col1 <button id="coll1Tabella-minus">-</button>
+      <span id="coll1Tabella-val">1</span>
+      <button id="coll1Tabella-plus">+</button>
+      &nbsp; Col2 <button id="coll2Tabella-minus">-</button>
+      <span id="coll2Tabella-val">2</span>
+      <button id="coll2Tabella-plus">+</button>
+      &nbsp; Max <button id="maxTabelle-minus">-</button>
+      <span id="maxTabelle-val">5</span>
+      <button id="maxTabelle-plus">+</button>
+    </div>
+
+    <hr style="margin:12px 0;">
+    <div style="font-size:0.9em; color:#aaa;">
+      <label style="font-size:1.1em;">
+      <input type="checkbox" id="ocr-loop-switch" style="margin-right:8px;">
+      OCR LOOP
+      </label>
+      <p>Ermes40kkk 2025</p>
+      <p>Versione: 1.0.0</p>
+      <p><a href="https://github.com/Ermes40kkk/WallOS">GitHub Repository</a></p>
+    </div>
+  </div>
   <!-- Visualizzazione magazzino sotto nummer-label -->
 <div id="magazzino-view" style="
-  position:fixed; left:20px; top:1430px; 
+  position:fixed; left:10px; top:59px; 
   background:#181818; padding:18px 12px; border-radius:12px; 
-  z-index:9000; display:flex; flex-direction:column;">
+  z-index:9000; display:none; flex-direction:column;">
 
   <div style="display:flex; flex-direction:row; gap:12px;">
     <!-- Genera 40 colonne -->
@@ -169,7 +384,15 @@ $$\   $$ |$$ |     $$  __$$ |$$ |  $$ |$$ |  $$ |$$   ____|$$ |
       <!-- Gruppi di 2 colonne con spazio tra i gruppi -->
       <!-- Ogni gruppo -->
       <!-- JS genererà i quadratini -->
-      <div id="magazzino-matrix" style="display:flex; flex-direction:row; gap:18px;"></div>
+      <div id="magazzino-matrix" style="
+        display:flex; 
+        flex-direction:row; 
+        gap:15px; 
+        max-width:100vw; 
+        max-height: 100vw; 
+        overflow-x: auto; 
+        overflow-y: auto; 
+      "></div>
     </div>
   </div>
 </div>
@@ -184,8 +407,10 @@ $$\   $$ |$$ |     $$  __$$ |$$ |  $$ |$$ |  $$ |$$   ____|$$ |
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const resultsList = document.getElementById("results");
-    const debugCheckbox = document.getElementById("debug-checkbox");
+    let ordini = [];
+    let colonneSelezionate = new Set();
 
+   
     const codiciLetti = new Set();
     let counter = 1;
 
@@ -208,7 +433,7 @@ $$\   $$ |$$ |     $$  __$$ |$$ |  $$ |$$ |  $$ |$$   ____|$$ |
       })
       .catch(err => alert("Errore: " + err.message));
 
-    let nummerVal = ""; // valore corrente Nummer
+let nummerVal = ""; // valore corrente Nummer
 
 function setNummerVal(val, gefunden = false) {
   nummerVal = val;
@@ -368,11 +593,18 @@ ocrLoopSwitch.addEventListener("change", () => {
   else Tesseract.terminate();
 });
 
-debugCheckbox.addEventListener("change", () => {
-      if (debugCheckbox.checked) {
-        resultsList.classList.remove("hide");
-      } else {
+const debugCheckbox = document.getElementById("debug-checkbox");
+debugCheckbox.addEventListener("click", () => {
+   const pressed = debugCheckbox.getAttribute('aria-pressed') === 'true';
+  debugCheckbox.setAttribute('aria-pressed', String(!pressed));
+      if (pressed) {
+        debugCheckbox.style.background = "#333";
+        debugCheckbox.style.color = "#fff";
         resultsList.classList.add("hide");
+      } else {
+        debugCheckbox.style.background = "#0f0";
+        debugCheckbox.style.color = "#000";
+        resultsList.classList.remove("hide");
       }
     });
 
@@ -382,8 +614,8 @@ const params = {
   collNummer: 1,
   rigaTabelle: 2,
   coll1Tabella: 1,
-  coll2Tabella: 2,
-  maxTabelle: 5
+  coll2Tabella: 5,
+  maxTabelle: 10
 };
 
 function updateParamsUI() {
@@ -407,37 +639,6 @@ updateParamsUI();
   };
 });
 
-// OCR Nummer
-document.getElementById("nummer-ocr-btn").onclick = () => {
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  canvas.toBlob(blob => {
-    Tesseract.recognize(blob, 'eng').then(({ data: { text } }) => {
-      const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
-      const line = lines[params.rigaNummer-1] || "";
-      const cols = line.split(/\s+/);
-      const val = cols[params.collNummer-1] || "";
-      setNummerVal(val, false); // aggiorna label, nessun trovato
-      aggiungiCodice(`Nummer: ${val}`);
-    });
-  }, "image/jpeg");
-};
-
-// OCR Tabelle
-document.getElementById("tabelle-ocr-btn").onclick = () => {
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  canvas.toBlob(blob => {
-    Tesseract.recognize(blob, 'eng').then(({ data: { text } }) => {
-      const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
-      for(let i=0; i<params.maxTabelle; i++) {
-        const line = lines[params.rigaTabelle-1+i] || "";
-        const cols = line.split(/\s+/);
-        const v1 = cols[params.coll1Tabella-1] || "";
-        const v2 = cols[params.coll2Tabella-1] || "";
-        if(v1 || v2) aggiungiCodice(`Tabella: ${v1} | ${v2}`);
-      }
-    });
-  }, "image/jpeg");
-};
 
 // Gestione apertura/chiusura settings
 const settingsBtn = document.getElementById("settings-btn");
@@ -453,51 +654,26 @@ settingsBtn.onclick = () => {
 };
 const magazzinoMatrix = document.getElementById("magazzino-matrix");
 
-// Matrice per posizioni trovate
-let magazzinoData = Array.from({length: 40}, () => Array(18).fill(false));
+const toggleCameraBtn = document.getElementById("toggle-camera-btn");
+let cameraHidden = false;
+toggleCameraBtn.onclick = () => {
+  cameraHidden = !cameraHidden;
+  video.style.display = cameraHidden ? "none" : "block";
+  toggleCameraBtn.textContent = cameraHidden ? "Mostra Camera" : "Nascondi Camera";
+};
 
-// Funzione per aggiornare la visualizzazione magazzino
-function aggiornaMagazzinoView() {
-  // Rimuovi tutto
-  magazzinoMatrix.innerHTML = "";
-  for (let group = 0; group < 20; group++) {
-    const groupDiv = document.createElement("div");
-    groupDiv.style.display = "flex";
-    groupDiv.style.flexDirection = "row";
-    groupDiv.style.gap = "4px";
-    for (let col = 0; col < 2; col++) {
-      const colNum = group * 2 + col + 1;
-      const colDiv = document.createElement("div");
-      colDiv.style.display = "flex";
-      colDiv.style.flexDirection = "column";
-      colDiv.style.gap = "2px";
-      const label = document.createElement("div");
-      label.textContent = colNum;
-      label.style.textAlign = "center";
-      label.style.color = "#ffe600";
-      label.style.fontWeight = "bold";
-      label.style.marginBottom = "2px";
-      colDiv.appendChild(label);
-      for (let row = 1; row <= 18; row++) {
-        const cell = document.createElement("div");
-        cell.style.width = "18px";
-        cell.style.height = "18px";
-        cell.style.background = magazzinoData[colNum-1][row-1] ? "#0f0" : "#333";
-        cell.style.border = "1px solid #555";
-        cell.style.borderRadius = "4px";
-        cell.style.marginBottom = "2px";
-        cell.title = `Colonna ${colNum}, Posizione ${row}`;
-        colDiv.appendChild(cell);
-      }
-      groupDiv.appendChild(colDiv);
-    }
-    groupDiv.style.marginRight = "12px";
-    magazzinoMatrix.appendChild(groupDiv);
-  }
-}
+// Matrice per posizioni trovate: ogni cella è { scaffale10: false, scaffale20: false }
+let magazzinoData = Array.from({length: 60}, () => Array.from({length: 18}, () => ({ scaffale10: false, scaffale20: false })));
+
+// Funzione per aggiornare la visualizzazione magazzino 1
 
 // OCR Tabelle modificato: salva v1/v2 nella matrice e aggiorna la vista
 document.getElementById("tabelle-ocr-btn").onclick = () => {
+
+  // Reset magazzinoData prima di ogni calcolo
+  if(!document.getElementById('daten-hinzufuegen').checked ) 
+    magazzinoData = Array.from({length: 60}, () => Array.from({length: 18}, () => ({ scaffale10: false, scaffale20: false })));
+  
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   canvas.toBlob(blob => {
     Tesseract.recognize(blob, 'eng').then(({ data: { text } }) => {
@@ -507,31 +683,706 @@ document.getElementById("tabelle-ocr-btn").onclick = () => {
         const cols = line.split(/\s+/);
         let v1 = cols[params.coll1Tabella-1] || "";
         let v2 = cols[params.coll2Tabella-1] || "";
+
+        // Caso: formato ZZZZ-CCC-NNN-XX-HH (es: 1234-003-018-10-99)
+        if (/^[A-Za-z0-9]{6}-\d{3}-\d{3}-\d{2}-\d{2}$/.test(v1)) {
+          const [portStr, colStr, rowStr, shelfStr, hhStr] = v1.split("-");
+          let col = parseInt(colStr, 10);
+          let row = parseInt(rowStr, 10);
+          let shelf = shelfStr; // "10" = primo scaffale, "20" = secondo scaffale
+          // portStr e hhStr disponibili per usi futuri
+          if (col >= 1 && col <= 45 && row >= 1 && row <= 18) {
+            if (shelf === "10") {
+                magazzinoData[col-1][row-1].scaffale10 = true;
+                magazzinoData[col-1][row-1].value10 = o.gewicht;
+              } else if (shelf === "20") {
+                magazzinoData[col-1][row-1].scaffale20 = true;
+                magazzinoData[col-1][row-1].value20 = o.gewicht;
+              }
+          }
+        }
+        // Caso: formato CCC-NNN-XX (es: 003-018-10)
+        else if (/^\d{3}-\d{3}-\d{2}$/.test(v1)) {
+          const [colStr, rowStr, shelfStr] = v1.split("-");
+          let col = parseInt(colStr, 10);
+          let row = parseInt(rowStr, 10);
+           let shelf = shelfStr;
+            // Visualizza solo le decine di v2 (rowStr)
+            let displayValue = "";
+            if (v2 && /^\d{2,3},\d{2}$/.test(v2)) {
+              // Prendi solo le decine prima della virgola
+              // const decine = v2.split(",")[0];
+              // displayValue = decine.length === 3 ? decine.slice(0,2) : decine.slice(0,1);
+              displayValue = v2.split(",")[0];
+            }
+          if (col >= 1 && col <= 45 && row >= 1 && row <= 18) {
+            if (shelf === "10") {
+              magazzinoData[col-1][row-1].scaffale10 = true;
+              magazzinoData[col-1][row-1].value10 = displayValue;
+            } else if (shelf === "20") {
+              magazzinoData[col-1][row-1].scaffale20 = true;
+              magazzinoData[col-1][row-1].value20 = displayValue;
+            }
+             // Carica anche in DataTable
+            ordini.push({
+              orderNr: "",
+              lagerPlatz: v1,
+              colStr: v1,
+              rowStr: v2,
+              shelfStr: "",
+              numPal: "",
+              datum: "",
+              lhm: "",
+              gewicht: v2
+            });
+             // Scrivi il valore nel quadrato
+              // setTimeout(() => {
+              //   const groupIndex = Math.floor((col)/2);
+              //   const colIndex = ((col)%2);
+              //   const magazzinoGroups = magazzinoMatrix.children;
+              //   if (magazzinoGroups[groupIndex-1]) {
+              //     const colDiv = magazzinoGroups[groupIndex-1].children[colIndex];
+              //     if (colDiv) {
+              //       const cell = colDiv.children[row]; // cell 0 is label
+              //       if (cell && displayValue) {
+              //         cell.textContent = displayValue;
+              //         cell.style.color = "#111";
+              //         cell.style.fontWeight = "bold";
+              //         cell.style.fontSize = "0.9em";
+              //         cell.style.textAlign = "center";
+              //       }
+              //     }
+              //   }
+              // }, 10);
+          }
+        }
         // Caso: v1 ha 4 caratteri, aggregato
-        if (v1.length === 4 && /^\d{4}$/.test(v1)) {
-          // Primi 2 caratteri = colonna, ultimi 2 = riga
+        else if (v1.length === 4 && /^\d{4}$/.test(v1)) {
           let col = parseInt(v1.slice(0,2), 10);
           let row = parseInt(v1.slice(2,4), 10);
-          if (col >= 1 && col <= 40 && row >= 1 && row <= 18) {
+          if (col >= 1 && col <= 45 && row >= 1 && row <= 18) {
             magazzinoData[col-1][row-1] = true;
           }
-        } else {
-          // v1 e v2 separati, screma "01"->1, "04"->4
+        }
+        // Caso: v1 e v2 separati
+        else {
           let col = v1.length ? parseInt(v1, 10) : NaN;
           let row = v2.length ? parseInt(v2, 10) : NaN;
-          if (!isNaN(col) && !isNaN(row) && col >= 1 && col <= 40 && row >= 1 && row <= 18) {
+          if (!isNaN(col) && !isNaN(row) && col >= 1 && col <= 45 && row >= 1 && row <= 18) {
             magazzinoData[col-1][row-1] = true;
           }
         }
         if(v1 || v2) aggiungiCodice(`Tabella: ${v1} | ${v2}`);
       }
       aggiornaMagazzinoView();
+       aggiornaTable();
     });
   }, "image/jpeg");
 };
 
 // Inizializza la vista magazzino all'avvio
 aggiornaMagazzinoView();
+
+function randomOrderData() {
+  const orders = [];
+  let lhmStart = 766882;
+  let lhmBase = 343167340000;
+  let orderCounter = 1;
+
+  function randomDate() {
+    const start = new Date(2025, 0, 1);
+    const end = new Date(2025, 11, 31);
+    const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}.${month}.${year}`;
+  }
+
+  function randomLagerPlatz(existingSet) {
+    let platz;
+    do {
+      const port = "M1BR01"; // fisso per semplicità
+      //const port = Math.random().toString(36).substring(2, 4).toUpperCase() + Math.floor(Math.random()*90+10);
+      const col = String(Math.floor(Math.random() * (34 - 3 + 1)) + 3).padStart(3, '0');
+      const row = String(Math.floor(Math.random()*18+1)).padStart(3, '0');
+      const shelf = Math.random() > 0.5 ? "10" : "20";
+      const hh = String(Math.floor(Math.random()*99)).padStart(2, '0');
+      platz = `${col}-${row}-${shelf}`;
+      //platz = `${col}-${row}-${shelf}-${hh}`;
+     // platz = `${port}-${col}-${row}-${shelf}-${hh}`;
+    } while (existingSet.has(platz));
+    existingSet.add(platz);
+    return platz;
+  }
+
+  function randomGewicht() {
+    return Math.floor(Math.random()*565 + 35); // 35..600
+  }
+
+  let gruppi = [
+    ...Array(8).fill(4),
+    ...Array(24).fill(2),
+    ...Array(8).fill(4),
+    ...Array(3).fill(7),
+    ...Array(6).fill(5)
+  ];
+  let rest = 200 - gruppi.reduce((a,b)=>a+b,0);
+  gruppi = [...gruppi, ...Array(rest).fill(1)];
+
+  let lhmSeq = lhmStart;
+  let orderNrSeq = 1;
+  let colStr = "";
+  let rowStr = "";
+  let dt;
+  gruppi.forEach(numPal => {
+    const orderNr = String.fromCharCode(65 + Math.floor(Math.random()*26)) + String.fromCharCode(65 + Math.floor(Math.random()*26)) + '-' + String(orderNrSeq).padStart(4, '0');
+    orderNrSeq++;
+    const usedLagerPlatz = new Set();
+    for(let i=0; i<numPal; i++) {
+      const lagerPlatz = randomLagerPlatz(usedLagerPlatz);
+      if( lagerPlatz.split('-')[1].length>3){
+      colStr = lagerPlatz.split('-')[1];
+      rowStr = lagerPlatz.split('-')[2];
+      }else{
+      colStr = lagerPlatz.split('-')[0];
+      rowStr = lagerPlatz.split('-')[1];
+      }
+      const shelfStr = Math.random() > 0.5 ? "10" : "20";
+      const datum = randomDate();
+      orders.push({
+        orderNr,
+        lagerPlatz,
+        colStr,
+        rowStr,
+        shelfStr,
+        numPal,
+        datum,
+        lhm: String(lhmBase + lhmSeq).padStart(18, '0'),
+        gewicht: randomGewicht()
+      });
+      lhmSeq++;
+    }
+  });
+  return orders;
+}
+
+document.getElementById("laden-btn").onclick = () => {
+  ordini = randomOrderData();
+  // Reset magazzinoData
+  magazzinoData = Array.from({length: 60}, () => Array.from({length: 18}, () => ({
+    scaffale10: false, scaffale20: false, value10: "", value20: "", lhm10: "", lhm20: ""
+  })));
+  // Carica i dati in magazzinoData, aggiungi anche LHM
+  ordini.forEach(o => {
+    const col = parseInt(o.colStr, 10);
+    const row = parseInt(o.rowStr, 10);
+    const shelf = o.shelfStr;
+    if (col >= 1 && col <= 45 && row >= 1 && row <= 18) {
+      if (shelf === "10") {
+        magazzinoData[col-1][row-1].scaffale10 = true;
+        magazzinoData[col-1][row-1].value10 = o.gewicht;
+        magazzinoData[col-1][row-1].lhm10 = o.lhm;
+      } else if (shelf === "20") {
+        magazzinoData[col-1][row-1].scaffale20 = true;
+        magazzinoData[col-1][row-1].value20 = o.gewicht;
+        magazzinoData[col-1][row-1].lhm20 = o.lhm;
+      }
+    }
+  });
+  aggiornaMagazzinoView();
+  aggiornaTable();
+};
+
+function aggiornaTable() {
+
+  // Rimuovi la vecchia tabella DataTables se presente
+  const dtDiv = document.querySelector("#datatable-container");
+  dtDiv.innerHTML = ""; // pulisci subito
+
+  // Crea la tabella per DataTables (solo markup, nessuna visualizzazione HTML intermedia)
+  const table = document.createElement("table");
+  table.id = "datatable-ordini";
+  table.className = "display";
+  table.style.width = "100%";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Or</th><th>La</th><th>Col</th><th>Row</th><th>Shelf</th>
+        <th>Pa</th><th>Da</th><th>LHM</th><th>Ge</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${ordini.map(o => `
+        <tr>
+          <td>${o.orderNr}</td>
+          <td>${o.lagerPlatz}</td>
+          <td>${o.colStr}</td>
+          <td>${o.rowStr}</td>
+          <td>${o.shelfStr}</td>
+          <td>${o.numPal}</td>
+          <td>${o.datum}</td>
+          <td>${o.lhm}</td>
+          <td>${o.gewicht}</td>
+        </tr>
+      `).join("")}
+    </tbody>
+  `;
+  dtDiv.appendChild(table);
+
+  // Inizializza DataTables direttamente, senza visualizzazione intermedia
+    if (window.DataTable) {
+       dt = new DataTable('#datatable-ordini', {
+        // scrollY: '800px',
+        scrollCollapse: true,
+        paging: false,
+        searching: true,
+        ordering: true,
+        info: false,
+        autoWidth: false,
+        columnDefs: [
+          { targets: [2, 3, 4], visible: false },   // nascondi Col, Row, Shelf
+          { targets: 0, width: '100px' },            // OrderNr (indice 0, zero-based)
+          { targets: 1, width: '100px' },            // LagerPlatz (indice 1, zero-based)
+          { targets: 5, width: '30px', textAlign: 'left' },             // NumPal (indice 5, zero-based)
+          { targets: 6, width: '90px' },             // Datum (indice 6, zero-based)
+          { targets: 8, width: '80px' },             // Gewicht (indice
+          { targets: 7, width: '140px' }             // LHM (indice 7, zero-based)
+        ]
+      });
+      dt.columns.adjust();
+
+  
+      // Poi nel draw della DataTable:
+      dt.on('draw', function() {
+        aggiornaMagazzinoDataFromTable();
+        aggiornaMagazzinoView();
+      });
+  // Click e touch su una riga: aggiorna label e selezione (anche con colonne nascoste)
+      const datatableOrdini = document.getElementById('datatable-ordini');
+      datatableOrdini.addEventListener('click', function (e) {
+        const tr = e.target.closest('tr');
+           selectMatrix(tr);
+      });
+
+      // Touch su una riga (mobile)
+      datatableOrdini.addEventListener('touchstart', function (e) {
+        const touch = e.touches[0];
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        const tr = elem ? elem.closest('tr') : null;
+        selectMatrix(tr);
+      });
+function selectMatrix(tr) {
+        if (tr && tr.parentElement.tagName === "TBODY") {
+          const data = dt.row(tr).data();
+          const lhm = data[7];
+          const col = data[2];
+          const row = data[3];
+          const shelf = data[4];
+          setNummerVal(lhm, false);
+          document.getElementById("location-label").textContent = ` | ${dt.row(tr).data()[1]}`;
+          selectRow(tr);
+          const colNum = parseInt(col, 10);
+          const rowNum = parseInt(row, 10);
+          const shelfNum = shelf;
+          document.querySelectorAll('#magazzino-matrix div[title]').forEach(cell => {
+            if (cell.style.background === "rgb(255, 0, 0)") 
+               cell.style.background = cell.title.includes("Scaffale 10") ? "#0f0" : "#333";
+            cell.style.boxShadow = "";
+            if (cell.title.includes(`Colonna ${colNum},`) &&
+                cell.title.includes(`Posizione ${rowNum},`) &&
+                cell.title.includes(`Scaffale ${shelfNum}`)) {
+                  cell.style.background =  "#f00"; // rosso
+              // cell.style.boxShadow = "0 0 0 3px #e0e0e0";
+            }
+          });
+        }
+}
+
+ // Colore selezione grigio chiaro
+  function selectRow(tr) {
+    document.querySelectorAll('#datatable-ordini tbody tr').forEach(row => {
+      row.style.background = "";
+    });
+    if (tr) tr.style.background = "#f00"; // rosso
+  }
+
+
+    } else {
+      console.error("DataTable non è definito");
+    }
+
+}
+
+    
+// Aggiorna magazzinoData prima di aggiornare la vista magazzino
+
+function aggiornaMagazzinoDataFromTable() {
+  // Ricostruisci magazzinoData dai dati attualmente visibili nella DataTable
+  magazzinoData = Array.from({length: 60}, () => Array.from({length: 18}, () => ({
+    scaffale10: false, scaffale20: false, value10: "", value20: "", lhm10: "", lhm20: ""
+  })));
+
+  if (!dt) return;
+
+  document.querySelectorAll('#datatable-ordini tbody tr').forEach(tr => {
+    const data = dt.row(tr).data();
+    if (!data) return;
+    const col = parseInt(data[2], 10);
+    const row = parseInt(data[3], 10);
+    const shelf = data[4];
+    const gewicht = data[8];
+    const lhm = data[7];
+    if (col >= 1 && col <= 45 && row >= 1 && row <= 18) {
+      if (shelf === "10") {
+        magazzinoData[col-1][row-1].scaffale10 = true;
+        magazzinoData[col-1][row-1].value10 = gewicht;
+        magazzinoData[col-1][row-1].lhm10 = lhm;
+      } else if (shelf === "20") {
+        magazzinoData[col-1][row-1].scaffale20 = true;
+        magazzinoData[col-1][row-1].value20 = gewicht;
+        magazzinoData[col-1][row-1].lhm20 = lhm;
+      }
+    }
+  });
+}
+
+
+
+
+const toggleOcrBtn = document.getElementById("toggle-ocr-btn");
+// const nummerOcrBtn = document.getElementById("nummer-ocr-btn");
+const tabelleOcrBtn = document.getElementById("tabelle-ocr-btn");
+
+let ocrHidden = false;
+// toggleOcrBtn.onclick = () => {
+//   ocrHidden = !ocrHidden;
+//   nummerOcrBtn.style.display = ocrHidden ? "none" : "";
+//   tabelleOcrBtn.style.display = ocrHidden ? "none" : "";
+//   ocrFrameBtn.style.display = ocrHidden ? "none" : "";
+//   sendFrameBtn.style.display = ocrHidden ? "none" : "";
+//   toggleOcrBtn.textContent = ocrHidden ? "Mostra OCR" : "Nascondi OCR";
+// };
+
+
+// Modifica aggiornaMagazzinoView per mostrare il valore nel quadrato 2
+function aggiornaMagazzinoView() {
+  magazzinoMatrix.innerHTML = ""; // pulisci tutto
+  // Genera 45 colonne in gruppi di 2 con spazio tra i gruppi
+  // Ogni colonna ha 18 righe
+  // Ogni cella è un quadratino 16x24px con bordo arroton
+
+  for (let group = 1; group < 26; group++) {
+    const groupDiv = document.createElement("div");
+    groupDiv.style.display = "flex";
+    groupDiv.style.flexDirection = "row";
+    groupDiv.style.gap = "3px";
+    for (let col = 0; col < 2; col++) {
+      const colNum = (group * 2 + col + (group > 1 ? 0 : 1));
+      if (colNum > 45) break;
+      const colDiv = document.createElement("div");
+      colDiv.style.display = "flex";
+      colDiv.style.flexDirection = "column";
+      colDiv.style.gap = "2px";
+      const label = document.createElement("div");
+      label.textContent = colNum;
+      label.style.textAlign = "center";
+      label.style.cursor = "pointer";
+      if (colonneSelezionate.has(label.textContent)) {
+        label.style.background ="#f00" ;
+      } else {
+        label.style.background = "";
+      }
+      label.onclick = function() {
+        // Filtra la DataTable per questa colonna
+          if (window.dt) {
+          const colValue = label.textContent;
+            if (colonneSelezionate.has(colValue)) {
+              // Deseleziona: togli dallo stato, reset colore, rimuovi filtro
+              colonneSelezionate.delete(colValue);            
+            } else {
+              // Seleziona: aggiungi allo stato, colore rosso
+             // colonneSelezionate.clear(); // singola selezione
+              colonneSelezionate.add(colValue);
+            }
+            // Applica la search combinata
+            if (window.dt) {
+              if (colonneSelezionate.size === 0) {
+                dt.column(2).search("").draw();
+              } else {
+                // Crea regex OR per tutte le colonne selezionate
+
+                //dt.column(2).search(label.textContent.padStart(3, '0')).draw();
+
+                 const regex = Array.from(colonneSelezionate).map(c => `^${c.padStart(3, '0')}$`).join('|');
+                 dt.column(2).search(regex, true, false).draw();
+              }
+            }
+        }
+      };
+      label.style.color = "#ffe600";
+      label.style.fontWeight = "bold";
+      label.style.marginBottom = "2px";
+      colDiv.appendChild(label);
+      for (let row = 1; row <= 18; row++) {
+        const rowContainer = document.createElement("div");
+        rowContainer.style.display = "flex";
+        rowContainer.style.flexDirection = "row";
+        rowContainer.style.gap = "2px";
+        rowContainer.style.marginBottom = "-24px";
+        const isEvenGroup = col === 0;
+        const skew = isEvenGroup ? "skewY(-45deg)" : "skewY(45deg)";
+        // Scaffale centrale (10)
+        const cell10 = document.createElement("div");
+        cell10.style.width = "16px";
+        cell10.style.height = "24px";
+        cell10.style.background = magazzinoData[colNum-1][row-1].scaffale10 ? "#0f0" : "#333";
+        cell10.style.border = "1px solid #555";
+        cell10.style.borderRadius = "4px";
+        cell10.style.transform = skew;
+        if (isEvenGroup) cell10.style.marginTop = "27px"; // <--- aggiungi margine superiore
+        cell10.title = `Colonna ${colNum}, Posizione ${row}, Scaffale 10`;
+        // Mostra valore se presente
+        if (magazzinoData[colNum-1][row-1].scaffale10 && magazzinoData[colNum-1][row-1].value10) {
+          let val = magazzinoData[colNum-1][row-1].value10.toString();
+          val = val.length === 3 ? val.slice(0,2) : val.slice(0,1); // mostra solo decine
+          const span = document.createElement("span");
+          span.textContent = val;
+          span.style.display = "block";
+          span.style.transform = isEvenGroup ? "skewY(45deg)" : "skewY(-45deg)"; // opposta a cella
+          span.style.color = "#111";
+          span.style.fontWeight = "bold";
+          span.style.fontSize = "0.95em";
+          span.style.textAlign = "center";
+          span.style.marginTop = "3px"; // abbassa la scritta di almeno 10px
+          cell10.appendChild(span);
+        }
+        rowContainer.appendChild(cell10);
+
+        // Scaffale profondo (20)
+        const cell20 = document.createElement("div");
+        cell20.style.width = "16px";
+        cell20.style.height = "24px";
+        //cell20.style.background = col === 0 ? "#222" : "#333";
+        cell20.style.background = magazzinoData[colNum-1][row-1].scaffale20 ? "#0f0" : "#222";
+        cell20.style.border = "1px solid #555";
+        cell20.style.borderRadius = "4px";
+        cell20.style.transform = skew;
+        if (!isEvenGroup) cell20.style.marginTop = "27px"; // <--- aggiungi margine superiore
+        cell20.title = `Colonna ${colNum}, Posizione ${row}, Scaffale 20`;
+        // Mostra valore se presente
+        if (magazzinoData[colNum-1][row-1].scaffale20 && magazzinoData[colNum-1][row-1].value20) {
+          let val = magazzinoData[colNum-1][row-1].value20.toString();
+          val = val.length === 3 ? val.slice(0,2) : val.slice(0,1);
+          const span = document.createElement("span");
+          span.textContent = val;
+          span.style.display = "block";
+          span.style.transform = isEvenGroup ? "skewY(45deg)" : "skewY(-45deg)"; // opposta a cella
+          span.style.color = "#111";
+          span.style.fontWeight = "bold";
+          span.style.fontSize = "0.95em";
+          span.style.textAlign = "center";
+          span.style.marginTop = "3px"; // abbassa la scritta di almeno 10px
+          cell20.appendChild(span);
+        }
+        rowContainer.appendChild(cell20);
+
+        colDiv.appendChild(rowContainer);
+      }
+      groupDiv.appendChild(colDiv);
+      if(group === 1 || group === 22) break;
+    }
+    magazzinoMatrix.appendChild(groupDiv);
+  }
+}
+
+// JS per la gestione delle viste
+const nummerLabel = document.getElementById("nummer-label");
+const datatableContainer = document.getElementById("datatable-container");
+const videoContainer = document.getElementById("video-container");
+const magazzinoView = document.getElementById("magazzino-view");
+const ocrControls = document.getElementById("ocr-controls");
+
+function showView(view) {
+  if (view === "datatable") {
+      datatableContainer.style.width = "96vw";
+      datatableContainer.style.height = "82vh";
+      nummerLabel.style.top = "86vh";
+      nummerLabel.style.left = "23px";
+      if(nummerLabel.textContent.length>10) {
+        nummerLabel.style.visibility = "visible";
+      }else {
+        nummerLabel.style.visibility = "hidden";
+      }
+  }
+  if (view === "magazzino") {
+    magazzinoView.style.left = "10px";
+    magazzinoView.style.top = "59px";
+    magazzinoView.style.width = "100vw";
+    magazzinoView.style.height = "100vh";
+    nummerLabel.style.top = "713px";
+    nummerLabel.style.left = "23px";
+    if(nummerLabel.textContent.length>10) {
+      nummerLabel.style.visibility = "visible";
+    } else {
+      nummerLabel.style.visibility = "hidden";
+    }
+  }
+  if (view === "split") {
+    nummerLabel.style.top = "44vh";
+    nummerLabel.style.left = "23px";
+    if(nummerLabel.textContent.length>10) {
+      nummerLabel.style.visibility = "visible";
+
+    } else {
+      nummerLabel.style.visibility = "hidden";
+    }
+  }
+  if (view === "video") {
+    nummerLabel.style.visibility = "hidden";
+  }
+  datatableContainer.style.display = (view === "datatable") ? "block" : "none";
+  videoContainer.style.display = (view === "video") ? "flex" : "none";
+  magazzinoView.style.display = (view === "magazzino") ? "block" : "none";
+  ocrControls.style.display = (view === "video") ? "block" : "none";
+}
+
+// Default: mostra solo datatable
+showView("datatable");
+nummerLabel.style.visibility = "hidden";
+
+// Settings: mostra la vista selezionata
+//document.getElementById("toggle-camera-btn").onclick = () => showView("video");
+document.getElementById("toggle-magazzino-btn").onclick = () => showView("magazzino");
+document.getElementById("toggle-datatable-btn").onclick = () => showView("datatable");
+
+
+ocrControls.style.display = "none";
+// nummerOcrBtn.style.display = "none";
+tabelleOcrBtn.style.display = "none";
+ocrFrameBtn.style.display = "none";
+sendFrameBtn.style.display = "none";
+
+// Quando si mostra la camera, mostra anche i pulsanti OCR
+document.getElementById("toggle-camera-btn").onclick = () => {
+  showView("video");
+  //nummerOcrBtn.style.display = "";
+  tabelleOcrBtn.style.display = "";
+  ocrFrameBtn.style.display = "";
+  sendFrameBtn.style.display = "";
+  ocrControls.style.display = "block";
+};
+const toggleSplitBtn = document.getElementById("toggle-split-btn");
+
+toggleSplitBtn.onclick = () => {
+  showView("split");
+  // Mostra entrambe le viste, ciascuna al 50%
+  datatableContainer.style.display = "block";
+  magazzinoView.style.display = "block";
+  videoContainer.style.display = "none";
+  ocrControls.style.display = "none";
+
+  // Imposta layout split verticale
+  datatableContainer.style.position = "fixed";
+  datatableContainer.style.top = "0";
+  datatableContainer.style.left = "0";
+  datatableContainer.style.width = "98vw";
+  datatableContainer.style.height = "40vh";
+  datatableContainer.style.zIndex = "8000";
+
+  magazzinoView.style.position = "fixed";
+  magazzinoView.style.top = "50vh";
+  magazzinoView.style.left = "0";
+  magazzinoView.style.width = "96vw";
+  magazzinoView.style.height = "50vh";
+  magazzinoView.style.zIndex = "8000";
+};
+// Dopo la funzione aggiornaMagazzinoView e dopo aggiornaTable
+
+// Funzione per selezionare la riga DataTable corrispondente
+function selectTableRowByMagazzino(col, row, shelf) {
+  const datatableOrdini = document.getElementById('datatable-ordini');
+  if (!datatableOrdini) return;
+  
+  if (!dt) return;
+
+  // Trova la riga corrispondente
+  let foundTr = null;
+  
+  document.querySelectorAll('#datatable-ordini tbody tr').forEach(tr => {
+    const data = dt.row(tr).data();
+
+    if (data && parseInt(data[2], 10) == col &&  parseInt(data[3], 10) == row && data[4] == shelf) {
+      foundTr = tr;
+    }
+  });
+
+  // Seleziona la riga e aggiorna NummerLabel
+  if (foundTr) {
+    // Seleziona la riga (sfondo nero)
+    document.querySelectorAll('#datatable-ordini tbody tr').forEach(rowEl => {
+      rowEl.style.background = "";
+    });
+    foundTr.style.background = "#f00";//red
+    // Aggiorna NummerLabel
+    const lhm = dt.row(foundTr).data()[7];
+    setNummerVal(lhm, false);
+    document.getElementById("location-label").textContent = ` | ${dt.row(foundTr).data()[1]}`;
+    document.getElementById("nummer-label").style.visibility = "visible";
+  }
+}
+
+// Gestione click/touch su magazzinoMatrix
+document.getElementById("magazzino-matrix").addEventListener("click", function(e) {
+  const cell = e.target.closest("div[title]");
+  if (!cell) return;
+  if (!(cell.style.background === "rgb(0, 255, 0)")) return;
+  // Reset tutti i quadrati
+  document.querySelectorAll('#magazzino-matrix div[title]').forEach(c => {
+                if (c.style.background === "rgb(255, 0, 0)") 
+               c.style.background = "#0f0";
+  
+  });
+  // Evidenzia il quadrato selezionato
+  cell.style.background = "#f00";
+  //cell.style.boxShadow = "0 0 0 3px #e0e0e0";
+
+  // Estrai colonna, posizione, scaffale dal title
+  const match = cell.title.match(/Colonna (\d+), Posizione (\d+), Scaffale (\d+)/);
+  if (match) {
+    const col = match[1];
+    const row = match[2];
+    const shelf = match[3];
+    selectTableRowByMagazzino(col, row, shelf);
+  }
+});
+
+// Touch su magazzinoMatrix (mobile)
+document.getElementById("magazzino-matrix").addEventListener("touchstart", function(e) {
+  const touch = e.touches[0];
+  const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+  const cell = elem ? elem.closest("div[title]") : null;
+  if (!cell) return;
+ if (!(cell.style.background === "rgb(0, 255, 0)")) return;
+  // Reset tutti i quadrati
+  document.querySelectorAll('#magazzino-matrix div[title]').forEach(c => {
+         if (c.style.background === "rgb(255, 0, 0)") 
+                c.style.background = "#0f0";
+  });
+  // Evidenzia il quadrato selezionato
+  cell.style.background = "#f00";
+  //cell.style.boxShadow = "0 0 0 3px #e0e0e0";
+
+  // Estrai colonna, posizione, scaffale dal title
+  const match = cell.title.match(/Colonna (\d+), Posizione (\d+), Scaffale (\d+)/);
+  if (match) {
+    const col = match[1];
+    const row = match[2];
+    const shelf = match[3];
+    selectTableRowByMagazzino(col, row, shelf);
+  }
+});
+
   </script>
 
 </body>

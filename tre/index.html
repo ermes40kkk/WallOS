@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Test Gruppo Colonna 3D con Slider e Click</title>
+<style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    canvas { display: block; }
+    #controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+        background: rgba(255,255,255,0.95);
+        padding: 14px;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px #0002;
+    }
+    #controls label { display: block; margin-top: 5px; }
+    #rotValues, #camValues {
+        margin-top: 5px;
+        padding: 3px;
+        background: #eee;
+        cursor: pointer;
+        user-select: all;
+    }
+  #main-canvas {
+        width: 600px!important;
+        height: 900px!important;
+        display: block;
+        background: #eeeeee;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px #0002;
+    }
+
+    #fixed-canvas {
+        width: 600px!important;
+        height: 300px!important;
+        display: block;
+        background: #f8f8f8;
+        border-radius: 8px;
+    }
+</style>
+</head>
+<body>
+  <div id="controls">
+      <label>X: <input type="range" id="rotX" min="-180" max="180" value="20"></label>
+      <label>Y: <input type="range" id="rotY" min="-180" max="180" value="-30"></label>
+      <label>Z: <input type="range" id="rotZ" min="-180" max="180" value="0"></label>
+      <label>Zoom: <input type="range" id="zoom" min="5" max="50" value="20"></label>
+      <div>Rotazioni salvate (clicca per copiare):</div>
+      <textarea id="rotValues" rows="2" readonly></textarea>
+      <div>Rotazione camera (mouse):</div>
+      <textarea id="camValues" rows="2" readonly></textarea>
+  </div>
+
+  <div style="display:flex; flex-direction:column; align-items:center; margin-top:190px;">
+    <div style="margin-top:160px;">
+      <canvas id="main-canvas" style="width:600px; height:1800px; margin-bottom:40px; background:#eeeeee; border-radius:8px; box-shadow:0 2px 12px #0002;"></canvas>
+    </div>
+    <div style="background:#f8f8f8; border-radius:12px; padding:12px; box-shadow:0 2px 12px #0001;">
+      <h3 style="margin:0 0 8px 0; text-align:center;">Magazzino Fisso</h3>
+      <canvas id="fixed-canvas" style="width:600px; height:800px; display:block; background:#f8f8f8; border-radius:8px;"></canvas>
+    </div>
+  </div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "./three.module.js"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './OrbitControls.js';
+
+// --- SCENA PRINCIPALE ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeeeeee);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
+camera.position.set(5, 10, 20);
+const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('main-canvas'), antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// --- SCENA FISSA ---
+const sceneFisso = new THREE.Scene();
+sceneFisso.background = new THREE.Color(0xf8f8f8);
+const cameraFisso = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
+cameraFisso.position.set(5, 10, 20);
+const rendererFisso = new THREE.WebGLRenderer({canvas: document.getElementById('fixed-canvas'), antialias:true});
+rendererFisso.setSize(600, 300);
+
+// --- LUCI ---
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(20, 20, 20);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+sceneFisso.add(light.clone());
+sceneFisso.add(new THREE.AmbientLight(0x404040));
+
+// --- ORBIT CONTROLS SOLO SULLA SCENA PRINCIPALE ---
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+// --- GRUPPI E CUBI COME PRIMA, MA SEPARATI PER LE DUE SCENE ---
+const magazzinoGroup = new THREE.Group();
+scene.add(magazzinoGroup);
+const magazzinoGroupFisso = new THREE.Group();
+sceneFisso.add(magazzinoGroupFisso);
+
+// --- GEOMETRIA E MATERIALI ---
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const materialBasso = new THREE.MeshBasicMaterial({color:0x00ff00, wireframe:true});
+const materialAlto = new THREE.MeshBasicMaterial({color:0x0000ff, wireframe:true});
+const cubi = [];
+const coloriClick = [0xff0000, 0xffff00, 0xff00ff, 0x00ffff, 0xffffff]; // sequenza colori click
+let clickCounter = 0;
+
+// --- AGGIUNGI I CUBI AL GRUPPO PRINCIPALE ---
+let colonnaX = 0;
+const baseY = -10; // Sposta l'inizio dal fondo del canvas principale
+for (let col = 0; col < 2; col++) {
+    for (let riga = 0; riga < 18; riga++) {
+        const zBase = 0;
+        // Cubo basso (scaffale profondo)
+        const cuboBasso = new THREE.Mesh(cubeGeometry, materialBasso.clone());
+        cuboBasso.position.set(colonnaX, baseY + riga * 1.2, zBase - 0.6); // Sposta indietro
+        cuboBasso.userData = { colonna: colonnaX+1, posizione: riga+1, livello: 'basso', gruppo: 'main' };
+        magazzinoGroup.add(cuboBasso);
+        cubi.push(cuboBasso);
+
+        // Cubo alto (scaffale centrale)
+        const cuboAlto = new THREE.Mesh(cubeGeometry, materialAlto.clone());
+        cuboAlto.position.set(colonnaX, baseY + riga * 1.2, zBase + 0.6); // Sposta avanti
+        cuboAlto.userData = { colonna: colonnaX+1, posizione: riga+1, livello: 'alto', gruppo: 'main' };
+        magazzinoGroup.add(cuboAlto);
+        cubi.push(cuboAlto);
+    }
+    colonnaX += 1.2;
+}
+
+// --- AGGIUNGI I CUBI AL GRUPPO FISSO (sotto) ---
+colonnaX = 0;
+const baseYFisso = -10; // Sposta l'inizio dal fondo del canvas fisso
+for (let col = 0; col < 2; col++) {
+    for (let riga = 0; riga < 18; riga++) {
+        const zBase = -10;
+        const cuboBasso = new THREE.Mesh(cubeGeometry, materialBasso.clone());
+        cuboBasso.position.set(colonnaX, baseYFisso + riga * 1.2, zBase);
+        cuboBasso.userData = { colonna: colonnaX+1, posizione: riga+1, livello: 'basso', gruppo: 'fisso' };
+        magazzinoGroupFisso.add(cuboBasso);
+
+        const cuboAlto = new THREE.Mesh(cubeGeometry, materialAlto.clone());
+        cuboAlto.position.set(colonnaX, baseYFisso + riga * 1.2, zBase + 0.7);
+        cuboAlto.userData = { colonna: colonnaX+1, posizione: riga+1, livello: 'alto', gruppo: 'fisso' };
+        magazzinoGroupFisso.add(cuboAlto);
+    }
+    colonnaX += 1.2;
+}
+
+// --- ROTAZIONE FISSA DEL GRUPPO FISSO ---
+magazzinoGroupFisso.rotation.x = THREE.MathUtils.degToRad(2.9);
+magazzinoGroupFisso.rotation.y = THREE.MathUtils.degToRad(3.6);
+magazzinoGroupFisso.rotation.z = THREE.MathUtils.degToRad(-0.2);
+
+// --- SOLO IL GRUPPO PRINCIPALE È MODIFICABILE DAL MOUSE ---
+
+
+window.addEventListener('click', onMouseClick, false);
+
+// --- AGGIUNGI PULSANTI PER RISCRIVERE ROTAZIONI ---
+const controlsDiv = document.getElementById('controls');
+const btnRotSalvate = document.createElement('button');
+btnRotSalvate.textContent = "Applica a magazzino fisso";
+btnRotSalvate.style.marginTop = "8px";
+controlsDiv.appendChild(btnRotSalvate);
+
+const btnRotCamera = document.createElement('button');
+btnRotCamera.textContent = "Applica camera a magazzino fisso";
+btnRotCamera.style.marginLeft = "8px";
+controlsDiv.appendChild(btnRotCamera);
+
+btnRotSalvate.onclick = () => {
+    magazzinoGroupFisso.rotation.x = THREE.MathUtils.degToRad(parseFloat(sliderX.value));
+    magazzinoGroupFisso.rotation.y = THREE.MathUtils.degToRad(parseFloat(sliderY.value));
+    magazzinoGroupFisso.rotation.z = THREE.MathUtils.degToRad(parseFloat(sliderZ.value));
+};
+
+btnRotCamera.onclick = () => {
+    magazzinoGroupFisso.rotation.x = camera.rotation.x;
+    magazzinoGroupFisso.rotation.y = camera.rotation.y;
+    magazzinoGroupFisso.rotation.z = camera.rotation.z;
+};
+
+// --- SLIDER PER ROTAZIONE DEL GRUPPO ---
+const sliderX = document.getElementById('rotX');
+const sliderY = document.getElementById('rotY');
+const sliderZ = document.getElementById('rotZ');
+const sliderZoom = document.getElementById('zoom');
+const rotValues = document.getElementById('rotValues');
+const camValues = document.getElementById('camValues');
+
+function aggiornaRotazione() {
+    magazzinoGroup.rotation.x = THREE.MathUtils.degToRad(parseFloat(sliderX.value));
+    magazzinoGroup.rotation.y = THREE.MathUtils.degToRad(parseFloat(sliderY.value));
+    magazzinoGroup.rotation.z = THREE.MathUtils.degToRad(parseFloat(sliderZ.value));
+    camera.position.set(5, 10, parseFloat(sliderZoom.value)); // aggiorna zoom principale
+    cameraFisso.position.set(5, 10, parseFloat(sliderZoom.value)); // aggiorna zoom fisso
+    const testo = `X=${sliderX.value}°, Y=${sliderY.value}°, Z=${sliderZ.value}°, Zoom=${sliderZoom.value}`;
+    rotValues.value = testo;
+}
+
+sliderX.addEventListener('input', aggiornaRotazione);
+sliderY.addEventListener('input', aggiornaRotazione);
+sliderZ.addEventListener('input', aggiornaRotazione);
+sliderZoom.addEventListener('input', aggiornaRotazione);
+aggiornaRotazione();
+
+// --- COPIA ROTAZIONI AL CLICK ---
+rotValues.addEventListener('click', () => {
+    rotValues.select();
+    document.execCommand('copy');
+    alert('Valori copiati negli appunti!');
+});
+
+// --- RAYCASTER PER CLICK SUI CUBI ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+ function onMouseClick(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(cubi);
+
+    if (intersects.length > 0) {
+        const cube = intersects[0].object;
+        // Cambia colore in sequenza
+        const colore = coloriClick[clickCounter % coloriClick.length];
+        cube.material.color.setHex(colore);
+        clickCounter++;
+        console.log(`Cliccato cubo: colonna ${cube.userData.colonna}, posizione ${cube.userData.posizione}, livello ${cube.userData.livello}, colore #${colore.toString(16)}`);
+    }
+}
+
+
+// --- TOUCH MOBILE ---
+window.addEventListener('touchstart', function(event) {
+    // Prendi il primo touch
+    const touch = event.touches[0];
+    // Calcola coordinate normalizzate
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const allCubi = [...cubi, ...magazzinoGroupFisso.children];
+    const intersects = raycaster.intersectObjects(allCubi);
+
+    if (intersects.length > 0) {
+        const cube = intersects[0].object;
+        const colore = coloriClick[clickCounter % coloriClick.length];
+        cube.material.color.setHex(colore);
+        clickCounter++;
+        console.log(`Touch cubo: colonna ${cube.userData.colonna}, posizione ${cube.userData.posizione}, livello ${cube.userData.livello}, gruppo ${cube.userData.gruppo}, colore #${colore.toString(16)}`);
+    }
+}, false);
+
+// --- ANIMAZIONE ---
+function updateCameraRotationDisplay() {
+    const rx = THREE.MathUtils.radToDeg(camera.rotation.x).toFixed(1);
+    const ry = THREE.MathUtils.radToDeg(camera.rotation.y).toFixed(1);
+    const rz = THREE.MathUtils.radToDeg(camera.rotation.z).toFixed(1);
+    camValues.value = `X=${rx}°, Y=${ry}°, Z=${rz}°`;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+    rendererFisso.render(sceneFisso, cameraFisso);
+    updateCameraRotationDisplay();
+}
+animate();
+
+// --- ADATTAMENTO SCHERMO ---
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
+
